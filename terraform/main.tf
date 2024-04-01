@@ -1,6 +1,6 @@
 # Definindo o provedor AWS
 provider "aws" {
-  region = "us-east-1"  # Altere para a região desejada
+  region = "us-east-1" 
 }
 
 # Criando uma sub-rede dentro da VPC
@@ -80,9 +80,4 @@ resource "aws_instance" "my_instance" {
   tags = {
     Name = "ec2-teste-devops"
   }
-}
-
-# Output do endereço IP público
-output "public_ip" {
-  value = aws_instance.my_instance.public_ip
 }
