@@ -1,0 +1,75 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      
+    - name: Setup Node.js environment
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16.13'
+        registry-url: 'https://registry.npmjs.org'
+        
+    - name: Install Yarn
+      run: npm install -g yarn@latest
+      
+    - name: Install dependencies
+      run: yarn install
+      
+    - name: Check Node.js version
+      run: node --version
+      
+    - name: Run Tests
+      run: |
+        output=$(npm run test)
+        if [[ "$output" != *"Fake test"* ]]; then
+          echo "Error: Tests failed"
+          exit 1
+        fi
+      working-directory: ./app
+
+  deploy:
+        name: Deploy
+        runs-on: ubuntu-latest
+        needs: build
+        environment: env
+      
+        steps:
+          - name: Checkout code
+            uses: actions/checkout@v2   
+      
+          - name: Login to Docker Hub
+            uses: docker/login-action@v3
+            with:
+              username: ${{ secrets.DOCKERHUB_USERNAME }}
+              password: ${{ secrets.DOCKERHUB_TOKEN }}
+              registry: docker.io
+      
+          - name: Build docker image
+            run: docker build -t lukasdext01/teste-devops-lukas .
+      
+          - name: Push image docker
+            run: docker push lukasdext01/teste-devops-lukas
+
+          - name:  Deploy ec2
+            env:
+                PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+                HOSTNAME: ${{secrets.SSH_HOST}}
+                USER_NAME: ${{secrets.USER_NAME}}
+    
+            run: |
+              echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
+              ssh -o StrictHostKeyChecking=no -i private_key ${USER_NAME}@${HOSTNAME} '
+                cd /home/ec2-user/ &&
+                docker pull lukasdext01/teste-devops-lukas &&
+                docker run -d -p 3000:3000 lukasdext01/teste-devops-lukas          
+              '
