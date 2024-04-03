@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'app/**'             
+      - '.github/workflows/**' 
 
 jobs:
   build:
@@ -55,10 +58,10 @@ jobs:
               registry: docker.io
       
           - name: Build docker image
-            run: docker build -t lukasdext01/teste-devops-lukas .
+            run: docker build -t lukasdext01/teste-devops-lukas:${{ github.run_id }} .
       
           - name: Push image docker
-            run: docker push lukasdext01/teste-devops-lukas
+            run: docker push lukasdext01/teste-devops-lukas:${{ github.run_id }}
 
           - name:  Deploy ec2
             env:
@@ -70,7 +73,6 @@ jobs:
               echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
               ssh -o StrictHostKeyChecking=no -i private_key ${USER_NAME}@${HOSTNAME} '
                 cd /home/ec2-user/ &&
-                docker stop $(docker ps -q) || true &&
                 docker pull lukasdext01/teste-devops-lukas &&
-                docker run -d -p 3000:3000 lukasdext01/teste-devops-lukas
+                docker run -d -p 3000:3000 lukasdext01/teste-devops-lukas:${{ github.run_id }}        
               '

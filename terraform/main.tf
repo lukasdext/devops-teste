@@ -1,12 +1,21 @@
 # Definindo o provedor AWS
 provider "aws" {
-  region = "us-east-1" 
+  region = "us-east-1"  
+}
+
+resource "aws_vpc" "vpc_terraform" {
+  cidr_block           = "172.16.0.0/24"
+
+  tags = {
+    Name        = "vpc-terraform"
+
+  }
 }
 
 # Criando uma sub-rede dentro da VPC
 resource "aws_subnet" "my_subnet" {
-  vpc_id            = "vpc-012b1ed5a7f10b849"
-  cidr_block        = "172.31.0.0/16"  
+  vpc_id            = aws_vpc.vpc_terraform.id
+  cidr_block        = "172.16.0.0/26"  
   availability_zone = "us-east-1a"   
 
   tags = {
@@ -14,14 +23,22 @@ resource "aws_subnet" "my_subnet" {
   }
 }
 
+/*==== Subnets ======*/
+resource "aws_internet_gateway" "ig" {
+  vpc_id = aws_vpc.vpc_terraform.id
+  tags = {
+    Name        = "igw-teste"
+
+  }
+}
 
 # Criando uma tabela de roteamento para a sub-rede
 resource "aws_route_table" "my_route_table" {
-  vpc_id = "vpc-012b1ed5a7f10b849"
+  vpc_id = aws_vpc.vpc_terraform.id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = "igw-0c1199e975cfb0186"
+    gateway_id = aws_internet_gateway.ig.id
   }
 
   tags = {
@@ -37,8 +54,7 @@ resource "aws_route_table_association" "my_subnet_association" {
 
 resource "aws_security_group" "my_security_group" {
   name        = "launch-wizard-2"
-  description = "launch-wizard-2 created 2024-04-01T05:31:19.154Z"
-  vpc_id      = "vpc-012b1ed5a7f10b849"
+  vpc_id      = aws_vpc.vpc_terraform.id
 }
 
 resource "aws_security_group_rule" "all_inbound" {
@@ -78,6 +94,11 @@ resource "aws_instance" "my_instance" {
               EOF
 
   tags = {
-    Name = "ec2-teste-devops"
+    Name = "ec2-teste-devops-vpc"
   }
+}
+
+# Output do endereço IP público
+output "public_ip" {
+  value = aws_instance.my_instance.public_ip
 }

@@ -1,4 +1,5 @@
-FROM node:14
+# Criando dockerfile para app
+FROM node:14 
 
 WORKDIR /app
 COPY ./app .
